@@ -1,4 +1,5 @@
 import csv
+import os
 import random
 
 import matplotlib.pyplot as plt
@@ -24,8 +25,8 @@ def plot_history(csv_path, png_path):
     df = pd.read_csv(csv_path)
     fig = plt.figure(figsize=(8, 8))
     ax = fig.add_subplot(1, 1, 1)
-    ax.plot(df['epoch'], df['train_loss'], label='g_train')
-    ax.plot(df['epoch'], df['val_loss'], label='d_train')
+    ax.plot(df['epoch'], df['train_loss'], label='train_loss')
+    ax.plot(df['epoch'], df['val_loss'], label='val_loss')
     ax.get_xaxis().get_major_formatter().set_useOffset(False)
     ax.get_xaxis().set_major_locator(ticker.MaxNLocator(integer=True))
     ax.set_xlabel('epoch')
@@ -70,7 +71,7 @@ net.net3_2.apply(weights_init)
 
 # GPU関連
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-print("使用デバイス：", device)
+print('devive：', device)
 net.to(device)
 
 # ネットワークがある程度固定であれば、高速化させる
@@ -79,8 +80,10 @@ torch.backends.cudnn.benchmark = True
 # 学習ログ関連
 train_loss_list = []
 val_loss_list = []
-csv_path = './history.csv'
-png_path = './history.png'
+result_dir = './result'
+os.makedirs(result_dir, exist_ok=True)
+csv_path = os.path.join(result_dir, 'history.csv')
+png_path = os.path.join(result_dir, 'history.png')
 with open(csv_path, 'w') as f:
     writer = csv.writer(f)
     header = ['epoch', 'train_loss', 'val_loss']
@@ -88,10 +91,10 @@ with open(csv_path, 'w') as f:
 
 # loss / optimizer
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(net.parameters(), lr=2e-5)
+optimizer = optim.Adam(net.parameters(), lr=1e-5)
 
 # epochのループ
-num_epochs = 10
+num_epochs = 2000
 for epoch in range(num_epochs):
     # epochごとの訓練と検証のループ
     for phase in ['train', 'val']:
@@ -146,8 +149,11 @@ for epoch in range(num_epochs):
     with open(csv_path, 'a') as f:
         writer = csv.writer(f)
         writer.writerow([epoch+1, train_loss, val_loss])
-    plot_history(csv_path, png_path)
+    if (epoch+1) % 5 == 0:
+        plot_history(csv_path, png_path)
+        model_name = 'ep_{}_weights.pth'.format(epoch+1)
+        model_path = os.path.join(result_dir, model_name)
+        torch.save(net.state_dict(), model_path)
 
-save_path = './weights.pth'
-torch.save(net.state_dict(), save_path)
+print('learning_done')
 
