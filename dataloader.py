@@ -16,9 +16,11 @@ def get_DataLoaders(max_length=400, min_freq=5, batch_size=24):
         node = tagger.parseToNode(text)
         word_list = []
         while node:
-            word = node.surface
-            if len(word) > 0 and word != '\u3000' and word != ',':
-                word_list.append(word)
+            pos = node.feature.split(",")[0]
+            if pos in ['名詞', '動詞', '形容詞']:  # 対象とする品詞
+                word = node.surface
+                if len(word) > 0 and word not in ['\u3000', 'それ', 'てる', 'よう', 'こと', 'の', 'し', 'い', 'ん', 'さ', 'て', 'せ', 'れ']  and word != ',':
+                    word_list.append(word)
             node = node.next
         return word_list
 
@@ -60,6 +62,4 @@ def get_DataLoaders(max_length=400, min_freq=5, batch_size=24):
     test_dl = torchtext.data.Iterator(test_ds, batch_size=batch_size, train=False, sort=False)
 
     return train_dl, val_dl, test_dl, TEXT
-
-
 
